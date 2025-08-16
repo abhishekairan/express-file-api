@@ -8,7 +8,7 @@ const process = require('process');
 const morgan = require('morgan');
 
 const app = express();
-const UPLOAD_DIR = `${process.cwd}/uploads`; // Change as needed
+const UPLOAD_DIR = `${process.cwd()}/uploads`; // Change as needed
 
 // Setup multer disk storage: creates upload directory if missing
 const storage = multer.diskStorage({
