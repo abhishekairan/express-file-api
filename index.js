@@ -3,6 +3,9 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Simple logger for requests and responses
+const morgan = require('morgan');
+
 const app = express();
 const UPLOAD_DIR = '/var/www/Storage/uploads'; // Change as needed
 
@@ -18,6 +21,9 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+
+// Log all incoming requests
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'));
 
 // Route: Upload a single file
 app.post('/api/upload', upload.single('file'), (req, res) => {
