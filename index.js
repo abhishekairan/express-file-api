@@ -2,12 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const process = require('process');
 
 // Simple logger for requests and responses
 const morgan = require('morgan');
 
 const app = express();
-const UPLOAD_DIR = '/var/www/Storage/uploads'; // Change as needed
+const UPLOAD_DIR = `${process.cwd}/uploads`; // Change as needed
 
 // Setup multer disk storage: creates upload directory if missing
 const storage = multer.diskStorage({
