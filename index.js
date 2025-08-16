@@ -1,0 +1,50 @@
+const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const app = express();
+const UPLOAD_DIR = '/var/www/Storage/uploads'; // Change as needed
+
+// Setup multer disk storage: creates upload directory if missing
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    // Save as timestamp-originalname for uniqueness
+    cb(null, Date.now() + '-' + file.originalname);
+  },
+});
+const upload = multer({ storage });
+
+// Route: Upload a single file
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  // Return file access URL (absolute path, adjust hostname for real deploy)
+  res.json({ 
+    success: true,
+    filename: req.file.filename,
+    url: `/api/files/${encodeURIComponent(req.file.filename)}`
+  });
+});
+
+// Route: Fetch/Get a file by filename
+app.get('/api/files/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename); // Prevent traversal
+  const filePath = path.join(UPLOAD_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+  res.sendFile(filePath);
+});
+
+// Optional: Security middleware, CORS for outside requests
+const cors = require('cors');
+app.use(cors());
+
+const PORT = process.env.PORT || 5500;
+app.listen(PORT, () => {
+  console.log(`File API running at http://localhost:${PORT}/`);
+});
