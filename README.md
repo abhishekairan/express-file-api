@@ -1,113 +1,146 @@
-# Express File API
-A Simple file API build on nodejs with multer
 
-Made this simple app to store files for my websites and apps, since S3 is expensive and i already own a VPS
+# 📂 File API Project 🚀  
 
-# Host This App on VPS and Domain
+A lightweight, secure, and scalable **File Upload API**, designed as an alternative to relying on static `public/` directories or costly third-party storage options like S3.  
 
-To host your Express file upload/fetch API at `file.mydomain.com`, you'll need to configure a subdomain and set up DNS, web server, and HTTPS as follows:
+Deployed successfully on a **Linux VPS**, configured with **Nginx + Certbot (SSL)**, and tested for performance, scalability, and reusability.  
 
-***
+---
 
-***
+## ✨ Features
+- ✅ Upload and manage files via REST API  
+- ✅ Secure HTTPS support (via **Certbot + Nginx**)  
+- ✅ Configured for large file uploads (no more “Request Entity Too Large”!)  
+- ✅ Reusable & extendable module (can be plugged into future projects)  
+- ✅ Lightweight, works with **Next.js, Node.js, or frontend clients**  
 
-## 1. **Clone the repo**
+---
 
-- Clone the repo using following command: 
-  ```bash
-  git clone https://github.com/abhishekairan/express-file-api.git
-  ```
-- Make sure you have git installed on your device
+## ⚙️ Tech Stack
+- **Backend**: Node.js / Express (API)  
+- **Hosting**: Linux VPS (Debian/Ubuntu)  
+- **Web Server**: Nginx  
+- **SSL**: Let’s Encrypt / Certbot  
+- **File System**: Custom storage on VPS disk (configurable)  
 
-***
+---
 
-## 2. **Create a DNS Record for Your Subdomain**
-- In your domain registrar’s dashboard, add an **A Record**:
-  - **Hostname:** `file`  
-  - **Points to:** Your VPS's public IP address.
-- Example:
-  ```
-  Hostname: file.mydomain.com
-  Type:    A
-  Value:   1.2.3.4
-  ```
-- Wait for DNS to propagate (may take minutes to hours).
+## 🚀 Installation & Setup
 
-***
+### 1. Clone Repository
+```bash
+git clone https://github.com/abhishekairan/express-file-api.git
+cd file-api
+```
 
-## 3. **Nginx Reverse Proxy for Subdomain**
-- Edit your Nginx config (usually `/etc/nginx/sites-available/file`):
+### 2. Install Dependencies
+```bash
+npm install
+```
 
-```nginx
+### 3. Configure Environment
+Create `.env` file:
+```txt
+PORT=4000
+UPLOAD_DIR=./uploads
+```
+
+### 4. Run Locally
+```bash
+node index.js
+```
+API will be available at:  
+```
+http://localhost:5500
+```
+
+---
+
+## 🌐 Deployment on Linux VPS
+
+### 1. Connect to VPS
+```bash
+ssh root@your-vps-ip
+```
+Repeat installation on linux vps
+
+### 2. Install Node.js, Nginx, Certbot
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install nginx certbot python3-certbot-nginx -y
+```
+
+### 3. Configure Reverse Proxy (Nginx)
+Replace `yourdomain.com` with your domain you wish to use
+```bash
+sudo nano /etc/nginx/sites-available/yourdomain.com
+```
+copy and paste the following in your file
+```
 server {
-  listen 80;
-  server_name file.mydomain.com;
+    server_name yourdomain.com;
 
-  location / {
-    proxy_pass http://localhost:3000/; # or your Express port
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
+    location / {
+        proxy_pass http://localhost:4000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    client_max_body_size 20M;
+}
+```
+Enable + restart:
+```bash
+sudo ln -s /etc/nginx/sites-available/yourdomain.com /etc/nginx/sites-enabled/
+sudo nginx -s reload
+```
+
+### 4. Enable SSL
+```bash
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+---
+
+## 📡 Usage Examples
+
+### Upload File
+```bash
+curl -F "file=@mydocument.pdf" https://yourdomain.com/api/upload
+```
+
+Response:
+```json
+{
+  "success": true,
+  "path": "/uploads/1755381965870-image.png"
 }
 ```
 
-- Enable the site by symlinking to `sites-enabled` and restart nginx:
-
-
+### Retrieve File
 ```bash
-sudo ln -s /etc/nginx/sites-available/file /etc/nginx/sites-enabled/
-sudo systemctl restart nginx
+https://yourdomain.com/api/files/1755381965870-image.png
 ```
 
-***
+---
 
-## 3. **Optional: Enable HTTPS for Security**
-- Use Certbot/Let's Encrypt to generate an SSL certificate:
-  ```bash
-  sudo certbot --nginx -d file.mydomain.com
-  ```
-- This secures all traffic over HTTPS.
+## 🚧 Future Improvements
+- ⬆️ Add authentication & JWT-based permissions  
+- ⬆️ File versioning & metadata handling  
+- ⬆️ Optional storage adapters (DigitalOcean, AWS S3, etc.)  
 
-***
+---
 
-## 4. **Result**
-- Your API is now publicly available at:
-  ```
-  https://file.mydomain.com/api/upload
-  https://file.mydomain.com/api/files/filename
-  ```
-- You can call these endpoints from anywhere using the subdomain.
+## 🙌 Acknowledgements
+- [Let’s Encrypt](https://letsencrypt.org/) for free SSL certificates  
+- [Nginx](https://www.nginx.org/) for blazing-fast reverse proxy  
+- [Linux VPS](https://www.digitalocean.com/) for affordable hosting  
 
-***
+---
 
-The **correct way to run your Express file upload API app in production on a VPS** follows these best practices:
+### 📝 License
+This project is licensed under the **MIT License** – feel free to use and extend.
 
-## 5. **Install PM2 for Process Management**
+---
 
-PM2 keeps your app running, restarts it on failure, logs output, lets you scale with clusters, and can run as a system service.
-
-- Install globally:
-  ```bash
-  npm install -g pm2
-  ```
-- Start your app:
-  ```bash
-  pm2 start server.js --name "file-api"
-  ```
-- List/manage processes:
-  ```bash
-  pm2 list
-  pm2 logs file-api
-  pm2 restart file-api
-  pm2 stop file-api
-  ```
-- Set PM2 to resurrect your app on server reboot:
-  ```bash
-  pm2 startup        # prints command, run that command
-  pm2 save           # saves current process list
-  ```
-
-***
-Your app is not ready to use.
+> Built with ⚡ passion & problem-solving: replacing costly cloud storage with a **self-hosted File API** that I’ll be reusing in many upcoming projects. 🚀
