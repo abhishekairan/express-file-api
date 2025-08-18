@@ -6,6 +6,8 @@ const process = require("process");
 const cors = require("cors");
 const morgan = require("morgan");
 
+const app = express();
+
 app.use(
   cors({
     origin: ["*"],
@@ -14,7 +16,6 @@ app.use(
   })
 );
 
-const app = express();
 const UPLOAD_DIR = `${process.cwd()}/uploads`; // Change as needed
 
 // Extending file upload limit from 1MB to 100MB
