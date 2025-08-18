@@ -10,7 +10,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "*",
+    origin: ["http://localhost:3000"],
     methods: ["GET", "POST", "OPTIONS"],
     credentials: false,
   })
@@ -19,8 +19,8 @@ app.use(
 const UPLOAD_DIR = `${process.cwd()}/uploads`; // Change as needed
 
 // Extending file upload limit from 1MB to 100MB
-app.use(express.json({ limit: "100mb" }));
-app.use(express.urlencoded({ limit: "100mb", extended: true }));
+app.use(express.json({ limit: 100 * 1024 * 1024 }));
+app.use(express.urlencoded({ limit: 100 * 1024 * 1024, extended: true }));
 
 // Setup multer disk storage: creates upload directory if missing
 const storage = multer.diskStorage({
