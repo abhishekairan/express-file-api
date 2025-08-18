@@ -32,6 +32,7 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
 
 // Route: Upload a single file
 app.post('/api/upload', upload.single('file'), (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*"); // or "*" for all origins
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   // Return file access URL (absolute path, adjust hostname for real deploy)
   res.json({ 
@@ -43,6 +44,7 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
 // Route: Fetch/Get a file by filename
 app.get('/api/files/:filename', (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*"); // or "*" for all origins
   const filename = path.basename(req.params.filename); // Prevent traversal
   const filePath = path.join(UPLOAD_DIR, filename);
   if (!fs.existsSync(filePath)) {
