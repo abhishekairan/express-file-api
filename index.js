@@ -10,7 +10,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["*"],
+    origin: "*",
     methods: ["GET", "POST", "OPTIONS"],
     credentials: false,
   })
@@ -33,7 +33,7 @@ const storage = multer.diskStorage({
     cb(null, Date.now() + "-" + file.originalname);
   },
 });
-const upload = multer({ storage });
+const upload = multer({ storage,limits: { fileSize: 100 * 1024 * 1024 } });
 
 // Log all incoming requests
 app.use(
