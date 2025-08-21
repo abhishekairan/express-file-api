@@ -47,7 +47,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   res.json({
     success: true,
     filename: req.file.filename,
-    url: `/api/files/${encodeURIComponent(req.file.filename)}`,
+    url: `${process.env.SITE}/api/files/${encodeURIComponent(req.file.filename)}`,
   });
 });
 
