@@ -8,13 +8,46 @@ const morgan = require("morgan");
 require('dotenv').config()
 const app = express();
 
+// Enhanced CORS configuration with proper security
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001", 
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:3001"
+];
+
+// Add production origins from environment if available
+if (process.env.ALLOWED_ORIGINS) {
+  allowedOrigins.push(...process.env.ALLOWED_ORIGINS.split(','));
+}
+
 app.use(
   cors({
-    origin: ["http://localhost:3000","*"],
-    methods: ["GET", "POST", "OPTIONS"],
-    credentials: false,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    credentials: true,
+    optionsSuccessStatus: 200
   })
 );
+
+// Additional security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
 
 const UPLOAD_DIR = `${process.cwd()}/uploads`; // Change as needed
 
@@ -40,28 +73,189 @@ app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
 );
 
+// Async error handling wrapper
+const asyncHandler = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
+// File validation helper
+const validateFile = (file) => {
+  if (!file) {
+    throw new Error('No file uploaded');
+  }
+  
+  // Check file size (100MB limit)
+  const maxSize = 100 * 1024 * 1024; // 100MB
+  if (file.size > maxSize) {
+    throw new Error('File size exceeds 100MB limit');
+  }
+  
+  // Check file type (optional - you can customize this)
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'application/pdf', 'text/plain', 'application/json',
+    'application/zip', 'application/x-zip-compressed'
+  ];
+  
+  if (allowedTypes.length > 0 && !allowedTypes.includes(file.mimetype)) {
+    throw new Error(`File type ${file.mimetype} not allowed`);
+  }
+  
+  return true;
+};
+
 // Route: Upload a single file
-app.post("/api/upload", upload.single("file"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  // Return file access URL (absolute path, adjust hostname for real deploy)
-  res.json({
+app.post("/api/upload", upload.single("file"), asyncHandler(async (req, res) => {
+  try {
+    // Validate the uploaded file
+    validateFile(req.file);
+    
+    // Return file access URL (absolute path, adjust hostname for real deploy)
+    const baseUrl = process.env.SITE || `http://localhost:${process.env.PORT || 5500}`;
+    res.status(201).json({
+      success: true,
+      message: "File uploaded successfully",
+      data: {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+        url: `${baseUrl}/api/files/${encodeURIComponent(req.file.filename)}`,
+      }
+    });
+  } catch (error) {
+    throw error; // Let the error handler catch it
+  }
+}));
+
+// Route: Fetch/Get a file by filename
+app.get("/api/files/:filename", asyncHandler(async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename); // Prevent traversal
+    
+    // Additional security check for filename
+    if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Invalid filename" 
+      });
+    }
+    
+    const filePath = path.join(UPLOAD_DIR, filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ 
+        success: false,
+        error: "File not found" 
+      });
+    }
+    
+    // Check if it's actually a file (not a directory)
+    const stats = fs.statSync(filePath);
+    if (!stats.isFile()) {
+      return res.status(400).json({ 
+        success: false,
+        error: "Invalid file" 
+      });
+    }
+    
+    res.sendFile(filePath);
+  } catch (error) {
+    throw error; // Let the error handler catch it
+  }
+}));
+
+// Health check endpoint
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
     success: true,
-    filename: req.file.filename,
-    url: `${process.env.SITE}/api/files/${encodeURIComponent(req.file.filename)}`,
+    message: "API is healthy",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
-// Route: Fetch/Get a file by filename
-app.get("/api/files/:filename", (req, res) => {
-  const filename = path.basename(req.params.filename); // Prevent traversal
-  const filePath = path.join(UPLOAD_DIR, filename);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: "File not found" });
+// 404 handler for undefined routes
+app.use("*", (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: "Route not found",
+    message: `Cannot ${req.method} ${req.originalUrl}`
+  });
+});
+
+// Global error handling middleware
+app.use((error, req, res, next) => {
+  console.error('Error:', error);
+  
+  // Multer errors
+  if (error.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({
+      success: false,
+      error: "File too large",
+      message: "File size exceeds the 100MB limit"
+    });
   }
-  res.sendFile(filePath);
+  
+  if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+    return res.status(400).json({
+      success: false,
+      error: "Unexpected field",
+      message: "Unexpected file field in request"
+    });
+  }
+  
+  // CORS errors
+  if (error.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      error: "CORS Error",
+      message: "Origin not allowed by CORS policy"
+    });
+  }
+  
+  // File validation errors
+  if (error.message.includes('No file uploaded') || 
+      error.message.includes('File size exceeds') ||
+      error.message.includes('not allowed')) {
+    return res.status(400).json({
+      success: false,
+      error: "File validation error",
+      message: error.message
+    });
+  }
+  
+  // File system errors
+  if (error.code === 'ENOENT') {
+    return res.status(404).json({
+      success: false,
+      error: "File not found",
+      message: "The requested file does not exist"
+    });
+  }
+  
+  if (error.code === 'EACCES') {
+    return res.status(403).json({
+      success: false,
+      error: "Permission denied",
+      message: "Insufficient permissions to access the file"
+    });
+  }
+  
+  // Default error response
+  res.status(error.status || 500).json({
+    success: false,
+    error: "Internal server error",
+    message: process.env.NODE_ENV === 'production' 
+      ? "Something went wrong" 
+      : error.message,
+    ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
+  });
 });
 
 const PORT = process.env.PORT || 5500;
 app.listen(PORT, () => {
   console.log(`File API running at http://localhost:${PORT}/`);
+  console.log(`Health check available at http://localhost:${PORT}/api/health`);
 });
