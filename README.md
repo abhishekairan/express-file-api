@@ -22,10 +22,11 @@ Deployed successfully on a **Linux VPS**, configured with **Nginx + Certbot (SSL
 ---
 
 ## ⚙️ Tech Stack
-- **Backend**: Node.js / Express (API)  
+- **Backend**: Node.js / Express (API) with ES6 Modules  
+- **Module System**: ES6 (ESM) - Modern JavaScript  
 - **Hosting**: Linux VPS (Debian/Ubuntu)  
 - **Web Server**: Nginx  
-- **SSL**: Let’s Encrypt / Certbot  
+- **SSL**: Let's Encrypt / Certbot  
 - **File System**: Custom storage on VPS disk (configurable)  
 
 ---
@@ -61,7 +62,14 @@ ALLOWED_ORIGINS=
 
 ### 4. Run Locally
 ```bash
+# Using npm scripts
+npm start
+
+# Or directly with node
 node index.js
+
+# For development with auto-restart
+npm run dev
 ```
 API will be available at:  
 ```

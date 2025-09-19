@@ -1,21 +1,39 @@
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const process = require("process");
-const cors = require("cors");
-const morgan = require("morgan");
-require('dotenv').config()
+import express from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import process from "process";
+import cors from "cors";
+import morgan from "morgan";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+// Configure dotenv
+dotenv.config();
+
+// ES6 equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const app = express();
 
 
 app.use(
   cors({
     origin: true, // Allow all origins
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+    allowedHeaders: [
+      "Content-Type", 
+      "Authorization", 
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+      "Access-Control-Request-Method",
+      "Access-Control-Request-Headers"
+    ],
     credentials: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    preflightContinue: false
   })
 );
 
@@ -28,7 +46,7 @@ app.use((req, res, next) => {
   next();
 });
 
-const UPLOAD_DIR = `${process.cwd()}/uploads`; // Change as needed
+const UPLOAD_DIR = path.join(__dirname, 'uploads'); // Change as needed
 
 // Extending file upload limit from 1MB to 100MB
 app.use(express.json({ limit: 100 * 1024 * 1024 }));
@@ -51,6 +69,15 @@ const upload = multer({ storage,limits: { fileSize: 100 * 1024 * 1024 } });
 app.use(
   morgan(":method :url :status :res[content-length] - :response-time ms")
 );
+
+// Handle preflight requests explicitly
+app.options('*', (req, res) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.sendStatus(200);
+});
 
 // Async error handling wrapper
 const asyncHandler = (fn) => (req, res, next) => {

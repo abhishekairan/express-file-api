@@ -2,9 +2,12 @@
   "name": "express-file-api",
   "version": "1.0.0",
   "description": "File API build with multer",
+  "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "dev"
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
