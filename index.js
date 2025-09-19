@@ -121,13 +121,11 @@ app.post("/api/upload", upload.single("file"), asyncHandler(async (req, res) => 
     res.status(201).json({
       success: true,
       message: "File uploaded successfully",
-      data: {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
-        url: `${baseUrl}/api/files/${encodeURIComponent(req.file.filename)}`,
-      }
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      mimetype: req.file.mimetype,
+      url: `${baseUrl}/api/files/${encodeURIComponent(req.file.filename)}`,
     });
   } catch (error) {
     throw error; // Let the error handler catch it
