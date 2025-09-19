@@ -98,7 +98,7 @@ const validateFile = (file) => {
   
   // Check file type (optional - you can customize this)
   const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'text/html',
     'application/pdf', 'text/plain', 'application/json',
     'application/zip', 'application/x-zip-compressed'
   ];
